@@ -1,0 +1,27 @@
+name: prime
+services:
+  prime_core:
+    container_name: prime_core
+    build:
+      context: .
+      dockerfile: iac/local/prime_core.Dockerfile
+      target: app
+      args:
+        - HOST_USER_GID=${HOST_USER_GID:-20}
+    image: prime_core
+    ports:
+      - "1801:80"
+      - "5173:5173"
+    volumes:
+      - .:/var/www/html
+    networks:
+      - prime_network
+
+volumes:
+  prime_db_data:
+  prime_redis_data:
+  prime_mailpit_data:
+
+networks:
+  prime_network:
+    name: prime_network
