@@ -1,0 +1,69 @@
+name: << project_name (prime) >>
+services:
+  << app_service_name (prime_core) >>:
+    container_name: << app_service_name (prime_core) >>
+    build:
+      context: .
+      dockerfile: iac/local/<< app_service_name (prime_core) >>.Dockerfile
+      target: app
+      args:
+        - HOST_USER_GID=${HOST_USER_GID:-20}
+    image: << image_name (prime_core) >>
+    ports:
+      - "<< your-port >>:80"
+      - "5173:5173"
+    volumes:
+      - .:/var/www/html
+    networks:
+      - << network_name (prime_network)>>
+  << db_service_name_db (prime_db) >>:
+    container_name: << db_service_name (prime_db) >>
+    command: '--default-authentication-plugin=mysql_native_password'
+    image: mariadb:11-jammy
+    restart: unless-stopped
+    environment:
+      - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASSWORD?:error}
+      - MARIADB_USER=${DB_USERNAME?:error}
+      - MARIADB_PASSWORD=${DB_PASSWORD?:error}
+      - MARIADB_DATABASE=${DB_DATABASE?:error}
+    volumes:
+      - << project_name (prime) >>_db_data:/var/lib/mysql
+    networks:
+      - << project_name (prime) >>_network
+    ports:
+      - "${DB_EXPOSED_PORT:?error}:3306"
+    healthcheck:
+      interval: 5s
+      retries: 3
+      test:
+        [
+          "CMD",
+          "healthcheck.sh",
+          "--su-mysql",
+          "--connect",
+          "--innodb_initialized"
+        ]
+      timeout: 10s
+  << redis_service_name_db (prime_redis) >>:
+    container_name: << db_service_name (prime_db) >>
+    image: redis:alpine
+    restart: unless-stopped
+    networks:
+      - << project_name (prime) >>_network
+    ports:
+      - "${REDIS_EXPOSED_PORT:?error}:6379"
+    healthcheck:
+      interval: 5s
+      retries: 3
+      test: [ "CMD", "redis-cli", "ping" ]
+      timeout: 10s
+    volumes:
+      - << project_name (prime) >>_redis_data:/data
+volumes:
+  << project_name (prime) >>_db_data:
+  << project_name (prime) >>_redis_data:
+  << project_name (prime) >>_mailpit_data:
+
+networks:
+  << project_name (prime) >>_network:
+    name: << project_name (prime) >>_network
